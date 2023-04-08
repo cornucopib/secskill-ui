@@ -1,0 +1,2 @@
+ENV_FLAG=pro
+ENV_BASE_URL="/api"

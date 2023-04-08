@@ -34,25 +34,24 @@
   </a-form>
 </template>
 <script>
-import { defineComponent, reactive } from 'vue';
-export default defineComponent({
-  setup() {
-    const formState = reactive({
-      username: '',
-      password: '',
-      remember: true,
-    });
-    const onFinish = values => {
-      console.log('Success:', values);
-    };
-    const onFinishFailed = errorInfo => {
-      console.log('Failed:', errorInfo);
-    };
+export default {
+  data() {
     return {
-      formState,
-      onFinish,
-      onFinishFailed,
+      formState: {
+        username: "",
+        password: "",
+        remember: true,
+      },
     };
   },
-});
+  methods: {
+    onFinish(values) {},
+    onFinishFailed(errorInfo) {},
+  },
+  created() {
+    this.$http.get("/sayHello").then((data) => {
+      console.log(JSON.stringify(data));
+    });
+  },
+};
 </script>
