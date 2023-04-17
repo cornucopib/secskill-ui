@@ -1,0 +1,563 @@
+GET _search
+{
+  "query": {
+    "match_all": {}
+  }
+}
+
+#添加索引，并设置分词插件
+PUT /person
+{
+ "settings":{
+   "index":{
+     "analysis.analyzer.default.type":"ik_max_word"
+   }
+ }
+}
+
+#查询索引设置
+GET /person/_settings
+
+#覆盖，必须指定id
+PUT /person/_doc/1
+{
+  "name":"张三",
+  "age":23,
+  "remark":"java developer"
+}
+
+
+#追加
+POST /person/_doc
+{
+  "name":"李四是猪",
+  "age":24,
+  "remark":"c++ developer"
+}
+
+#局部更新,必须传递id
+POST /person/_update/1
+{
+  "doc":{
+    "age":24
+  }
+}
+
+# 先查询再更新，原子操作
+POST /person/_update_by_query
+{
+  "query":{
+    "match": {
+      "_id": 1
+    }
+  },
+  "script": {
+    "source": "ctx._source.age=100"
+  }
+}
+
+# 根据id查询
+GET /person/_doc/1
+
+
+GET /person/_search
+# 精确匹配，不分词
+GET /person/_search
+{
+  "query": {
+    "term": {
+      "name": {
+        "value": "是猪"
+      }
+    }
+  }
+}
+
+# 分词匹配
+GET /person/_search
+{
+  "query": {
+    "match": {
+       "name": "是猪"
+    }
+  }
+}
+
+# 删除
+DELETE /person/_doc/aaEmhYcBd630G1-pHcnn
+
+
+DELETE /person1
+#批量创建更新等文档
+POST _bulk
+{"create":{"_index":"person1","_id":"1"}}
+{ "name":"刘伟","age":10,"birthday":"2023-04-16"}
+{"create":{"_index":"person1","_id":"2"}}
+{ "name":"刘杰","age":15,"birthday":"2023-05-16"}
+{"create":{"_index":"person1","_id":"3"}}
+{ "name":"刘达","age":18,"birthday":"2023-06-16"}
+
+#批量创建或全量替换index。如果原文档不存在，则创建；如果存在，则替换
+POST _bulk
+{"index":{"_index":"person1","_id":"4"}}
+{ "name":"刘伟1","age":10,"birthday":"2023-04-16"}
+
+#批量删除
+POST _bulk
+{"delete":{"_index":"person1","_id":"4"}}
+
+#批量更新
+POST _bulk
+{"update":{"_index":"person1","_id":"3"}}
+{"doc":{"name":"刘达达"}}
+
+GET /person1/_search
+
+#批量读取
+GET _mget
+{
+  "docs":[
+    {
+      "_index":"person",
+      "_id":1
+    }  ,  {
+      "_index":"person1",
+      "_id":1
+    } 
+  ]
+}
+
+#批量搜索
+GET _msearch
+{"index":"person"}
+{"query":{"match_all":{}}}
+
+#DSL,from,size分页，size必须<=10000
+GET /person1/_search
+{
+  "query": {
+    "match_all": {}
+  },
+  "size": 1000,
+  "from": 0
+}
+
+PUT /person1/_settings
+{
+  "index.max_result_window":10000
+}
+
+#分页scroll,保持游标1分钟
+GET /person1/_search?scroll=1m
+{
+  "query": {
+    "match_all": {}
+  },
+  "size": 2
+}
+
+GET /person1/_search?scroll=1m
+{
+  "query": {
+    "match_all": {}
+  },
+  "scroll_id":"3",
+  "scroll":"1m",
+  "size": 2
+}
+
+#排序，分页
+GET /person1/_search
+{
+  "query": {
+    "match_all": {}
+  },
+  "size": 2,
+  "sort": [
+    {
+      "age": {
+        "order": "desc"
+      }
+    }
+  ]
+}
+
+# match,按照关键词分词，进行匹配查找。分词or，例如：刘or伟
+GET /person1/_search
+{
+  "query": {
+    "match": {
+      "name": "刘伟"
+    }
+  }
+}
+
+# match,按照关键词分词，进行匹配查找。分词and,刘and伟
+GET /person1/_search
+{
+  "query": {
+    "match": {
+      "name":{
+        "query": "刘伟",
+        "operator": "and"
+      }
+    }
+  }
+}
+
+# match,按照关键词分词，进行匹配查找。指定分词匹配个数
+GET /person1/_search
+{
+  "query": {
+    "match": {
+      "name":{
+        "query": "刘伟",
+        "minimum_should_match": 1
+      }
+    }
+  }
+}
+
+
+# match,短语匹配。相邻的词语，才能匹配上。"广州白云山"，广州，白云山，云山。搜索广州白云山时，广州白云山能匹配，广州白云不能匹配
+GET /person1/_search
+{
+  "query": {
+    "match_phrase": {
+      "name":{
+        "query": "刘伟"
+      }
+    }
+  }
+}
+
+# match,短语匹配。相邻的词语，才能匹配上。间隔1
+GET /person1/_search
+{
+  "query": {
+    "match_phrase": {
+      "name":{
+        "query": "刘伟",
+        "slop": 1
+      }
+    }
+  }
+}
+
+# query_string,指定所有字段
+GET /person1/_search
+{
+  "query": {
+    "query_string": {
+      "query": "刘伟 or 杰"
+    }
+  }
+}
+
+# query_string,指定单个字段
+GET /person1/_search
+{
+  "query": {
+    "query_string": {
+      "default_field": "address", 
+      "query": "刘伟 or 杰"
+    }
+  }
+}
+
+# query_string,指定多个字段
+GET /person1/_search
+{
+  "query": {
+    "query_string": {
+      "fields": ["name"], 
+      "query": "刘伟 or 杰"
+    }
+  }
+}
+
+#关键词查询，不会进行分词匹配。只有text类型进行分词，keyword,date,integer,long,double,boolean,ip会分词。如果要对text不进行分词匹配，则加上keyword，进行精确匹配。还是会算相关性。
+GET /person1/_search
+{
+  "query": {
+    "term": {
+      "name.keyword": {
+        "value":"刘伟1"
+      }
+    }
+  }
+}
+
+#可以通过Constan Score，不计算相关性分数,并且有缓存。提升搜索效率。
+GET /person1/_search
+{
+  "query": {
+    "constant_score": {
+      "filter": {
+        "term": {
+          "name.keyword": "刘伟1"
+        }
+      }
+    }
+  }
+}
+
+#term针对多值，是包含不是等于匹配
+GET /person1/_search
+{
+  "query": {
+    "constant_score": {
+      "filter": {
+        "term": {
+          "name.keyword": "刘伟1"
+        }
+      }
+    }
+  }
+}
+
+#prefix前缀搜索。针对分词后的前缀搜索
+GET /person1/_search
+{
+  "query": {
+    "prefix": {
+      "name":{
+        "value":"刘"
+      }
+    }
+  }
+}
+
+#通配符搜索。针对分词后的前缀搜索
+GET /person1/_search
+{
+  "query": {
+    "wildcard": {
+      "name":{
+        "value":"刘"
+      }
+    }
+  }
+}
+
+
+#range
+GET /person1/_search
+{
+  "query": {
+    "range": {
+      "age":{
+        "lte":10
+      }
+    }
+  }
+}
+
+
+#多id查询
+GET /person1/_search
+{
+  "query": {
+    "ids": {
+       "values": [1,2]
+    }
+  }
+}
+
+#模糊查询，有时候打错字，导致搜索不到。模糊查询，允许有错别字个数:fuzziness。
+GET /person1/_search
+{
+  "query": {
+    "fuzzy": {
+      "name": {
+        "value": "唯"
+        , "fuzziness": 1
+      }
+    }
+  }
+}
+
+#高亮查询highlight，可以让符合条件的文档中的关键词高亮。pre_tags修改前缀标签，post_tags,修改后缀标签。
+GET /person1/_search
+{
+  "query": {
+    "term": {
+      "name": {
+        "value": "刘"
+      }
+    }
+  },
+  "highlight": {
+    "fields": {
+      "*":{}
+    }
+  }
+}
+
+#高亮查询highlight，可以让符合条件的文档中的关键词高亮。pre_tags修改前缀标签，post_tags,修改后缀标签。也可以多字段高亮。
+GET /person1/_search
+{
+  "query": {
+    "term": {
+      "name": {
+        "value": "刘"
+      }
+    }
+  },
+  "highlight": {
+    "pre_tags": ["<font color='red'>"], 
+    "post_tags":["<font/>"], 
+    "require_field_match": "false", 
+    "fields": {
+      "name": {},
+       "age": {}
+    }
+  }
+}
+
+#explain，查看计算相关性评分过程
+GET /person1/_search
+{ 
+  "explain": true, 
+  "query": {
+    "match": {
+      "name": {
+        "query": "刘"
+      }
+    }
+  }
+}
+
+# 
+GET /person1/_search
+{ 
+  "query": {
+     "boosting": {
+       "positive": {
+         "term": {
+           "name": {
+             "value": "伟"
+           }
+         }
+       },
+       "negative": {
+         "term": {
+           "name": {
+             "value": "刘"
+           }
+         }
+       },
+       "negative_boost": 0.2
+     }
+  }
+}
+
+#相关性算分。
+
+#设置映射
+
+DELETE student
+
+PUT student
+{
+  "mappings": {
+      "properties": {
+        "name": { "type": "text" },
+        "age":{"type":"integer"},
+        "interest": { "type": "text" },
+        "email": { "type": "keyword" },
+        "birthday": { "type": "date" },
+        "remark": { "type": "text" },
+        "creation_date":{"type":"date"}
+      }
+  }
+}
+
+DELETE student
+POST _bulk
+{"create":{"_index":"student","_id":"1"}}
+{ "name":"Abraham","age":21,"interest":"foot ball,basket ball","email":"a@163.com","birthday":"1992-04-16","remark":"bad"}
+{"create":{"_index":"student","_id":"2"}}
+{ "name":"Babs","age":22,"interest":"foot ball","email":"b@qq.com","birthday":"1993-04-17","remark":"good"}
+{"create":{"_index":"student","_id":"3"}}
+{ "name":"Candice","age":23,"interest":"bird,ping pang","email":"c@qq.com","birthday":"1993-05-17","remark":"Medium"}
+{"create":{"_index":"student","_id":"4"}}
+{ "name":"Ellie","age":25,"interest":"bird","email":"d@qq.com","birthday":"1994-05-17","remark":"Medium"}
+{"create":{"_index":"student","_id":"5"}}
+{ "name":"Ell","age":21,"interest":"ping pang","email":"c@qq.com","birthday":"1994-05-17","remark":"good"}
+
+GET /student/_search
+
+POST _analyze
+{
+  "text": ["Abraham"]
+}
+
+GET /student/_search
+{
+    "query": {
+        "bool": {
+            "filter": [
+                {
+                    "range": {
+                        "age": {
+                            "lte": 24
+                        }
+                    }
+                },
+                {
+                    "bool": {
+                        "should": [
+                            {
+                                "match": {
+                                    "interest": "ball"
+                                }
+                            },
+                            {
+                                "match": {
+                                    "interest": "basket"
+                                }
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+    }
+}
+
+GET /student/_search
+{
+    "size": 0,
+    "from":0,
+    "query": {
+        "bool": {
+            "filter": [
+                {
+                    "range": {
+                        "age": {
+                            "lte": 24
+                        }
+                    }
+                }
+            ]
+        }
+    },
+    "aggs": {
+        "age_buckets": {
+            "terms": {
+                "field": "age",
+                "size": 1
+            },
+            "aggs": {
+                "demo": {
+                    "bucket_sort": {
+                        "sort":[],
+                        "size": 1,
+                        "from":1
+                    }
+                }
+            }
+        }
+    }
+}

@@ -49,8 +49,8 @@ export default {
     onFinishFailed(errorInfo) {},
   },
   created() {
-    this.$http.get("/sayHello").then((data) => {
-      console.log(JSON.stringify(data));
+    this.$http.post("/user/login").then((data) => {
+      console.log(data);
     });
   },
 };

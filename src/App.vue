@@ -1,5 +1,10 @@
-<script setup>
-import Login from "./pages/login/Login.vue";
+<script>
+import Login from "@/pages/user/Login.vue";
+export default {
+  components:{
+    Login
+  }
+}
 </script>
 
 <template>
